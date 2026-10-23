@@ -35,3 +35,19 @@ export function makeProposal(config, snapshot, hash, redemption, paused) {
     descriptionHash: keccak256(toUtf8Bytes(description)),
   };
 }
+
+// Compare exact compiled runtime while ignoring only compiler-declared immutable slots.
+export function matchesRuntime(actual, artifact) {
+  if (!artifact.deployedBytecode || actual.length !== artifact.deployedBytecode.length) return false;
+  const normalize = code => {
+    let result = code.toLowerCase();
+    for (const slots of Object.values(artifact.immutableReferences ?? {})) {
+      for (const {start, length} of slots) {
+        const offset = 2 + start * 2;
+        result = result.slice(0, offset) + '0'.repeat(length * 2) + result.slice(offset + length * 2);
+      }
+    }
+    return result;
+  };
+  return normalize(actual) === normalize(artifact.deployedBytecode);
+}

@@ -53,6 +53,7 @@ for (const [file, contracts] of Object.entries(output.contracts))
           abi: c.abi,
           bytecode: "0x" + c.evm.bytecode.object,
           deployedBytecode: "0x" + c.evm.deployedBytecode.object,
+          immutableReferences: c.evm.deployedBytecode.immutableReferences,
           linkReferences: {},
           deployedLinkReferences: {},
         },

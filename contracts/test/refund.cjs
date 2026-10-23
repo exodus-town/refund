@@ -111,4 +111,12 @@ describe("TownRefund", function () {
     assert.equal(await mana.balanceOf(alice.address), 0n);
     assert.equal(await refund.remainingAllocation(), 350n);
   });
+  it('matches the exact published runtime and rejects altered code', async () => {
+    const {matchesRuntime} = await import('../../scripts/shared.mjs');
+    const artifact = await require('hardhat').artifacts.readArtifact('TownRefund');
+    const actual = await ethers.provider.getCode(refund.target);
+    assert.equal(matchesRuntime(actual, artifact), true);
+    assert.equal(matchesRuntime('0xff' + actual.slice(4), artifact), false);
+  });
+
 });

@@ -10,7 +10,7 @@ const artifact = JSON.parse(
 );
 fs.writeFileSync(
   "public/refund-artifact.json",
-  JSON.stringify({ abi: artifact.abi, bytecode: artifact.bytecode }),
+  JSON.stringify({ abi: artifact.abi, bytecode: artifact.bytecode, deployedBytecode: artifact.deployedBytecode, immutableReferences: artifact.immutableReferences }),
 );
 const hash = keccak256(toUtf8Bytes(text));
 fs.mkdirSync("public/snapshots", { recursive: true });
