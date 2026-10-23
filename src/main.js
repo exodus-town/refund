@@ -1,8 +1,7 @@
 import "./style.css";
+import { createReadProvider } from "./rpc.js";
 import {
   BrowserProvider,
-  JsonRpcProvider,
-  FetchRequest,
   Contract,
   ContractFactory,
   formatUnits,
@@ -70,9 +69,10 @@ function shareURL() {
 }
 let selected = new Set();
 function provider(url) {
-  const request = new FetchRequest(url);
-  request.timeout = 15000;
-  return new JsonRpcProvider(request, config.chainId, { staticNetwork: true });
+  return createReadProvider(
+    [url, ...(config.rpcFallbackUrls ?? [])],
+    config.chainId,
+  );
 }
 let rpc = provider(config.rpcUrl),
   signer,
@@ -293,35 +293,39 @@ async function refresh() {
     live.delegate = await town.delegates(account);
     if (live.proposalId && live.state !== null)
       live.hasVoted = await governor.hasVoted(live.proposalId, account);
-    const count = Number(await town.balanceOf(account));
-    const refund = config.redemption
-      ? new Contract(config.redemption, refundABI, rpc)
-      : null;
-    // Chunk wallet inventory reads to stay responsive without flooding public RPCs.
-    for (let offset = 0; offset < count; offset += 12) {
-      const chunk = await Promise.all(
-        Array.from({ length: Math.min(12, count - offset) }, async (_, j) => {
-          const id = await town.tokenOfOwnerByIndex(account, offset + j);
-          const entry = snapshot?.refunds.find((r) => r.tokenId === String(id));
-          const [claimed, approvedAddress, approvedAll] = refund
-            ? await Promise.all([
-                refund.claimed(id),
-                town.getApproved(id),
-                town.isApprovedForAll(account, config.redemption),
-              ])
-            : [false, "", false];
-          return {
-            id: String(id),
-            entry,
-            claimed,
-            approved:
-              approvedAll ||
-              approvedAddress.toLowerCase() ===
-                config.redemption?.toLowerCase(),
-          };
-        }),
-      );
-      tokens.push(...chunk);
+    if (tab === "refund") {
+      const count = Number(await town.balanceOf(account));
+      const refund = config.redemption
+        ? new Contract(config.redemption, refundABI, rpc)
+        : null;
+      // Chunk wallet inventory reads to stay responsive without flooding public RPCs.
+      for (let offset = 0; offset < count; offset += 12) {
+        const chunk = await Promise.all(
+          Array.from({ length: Math.min(12, count - offset) }, async (_, j) => {
+            const id = await town.tokenOfOwnerByIndex(account, offset + j);
+            const entry = snapshot?.refunds.find(
+              (r) => r.tokenId === String(id),
+            );
+            const [claimed, approvedAddress, approvedAll] = refund
+              ? await Promise.all([
+                  refund.claimed(id),
+                  town.getApproved(id),
+                  town.isApprovedForAll(account, config.redemption),
+                ])
+              : [false, "", false];
+            return {
+              id: String(id),
+              entry,
+              claimed,
+              approved:
+                approvedAll ||
+                approvedAddress.toLowerCase() ===
+                  config.redemption?.toLowerCase(),
+            };
+          }),
+        );
+        tokens.push(...chunk);
+      }
     }
   }
   healthy = true;
@@ -418,7 +422,6 @@ async function run(fn) {
     notice = e.shortMessage || e.reason || e.message;
     console.error(e);
   } finally {
-    busy = false;
     try {
       await refresh();
     } catch (e) {
@@ -427,6 +430,7 @@ async function run(fn) {
         notice ||
         `Unable to verify live chain data: ${e.shortMessage || e.message}`;
     }
+    busy = false;
     render();
   }
 }
@@ -505,7 +509,8 @@ function bind() {
     (el) =>
       (el.onclick = () => {
         tab = el.dataset.tab;
-        render();
+        if (tab === "refund" && account) run(async () => {});
+        else render();
       }),
   );
   $("#refresh")?.addEventListener("click", () => run(async () => {}));

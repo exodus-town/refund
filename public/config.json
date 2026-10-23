@@ -1,6 +1,6 @@
 {
   "chainId": 137,
-  "rpcUrl": "https://polygon.drpc.org",
+  "rpcUrl": "https://polygon.gateway.tenderly.co",
   "explorer": "https://polygonscan.com",
   "town": "0xAE38E6d941Fb364c142CC90df285CEEF85713467",
   "mana": "0xA1c57f48F0Deb89f569dFbE6E2B7f46D33606fD4",
@@ -8,5 +8,9 @@
   "governor": "0x7E96f5242D1256E56E15b46EB2Fa1b1152dF5923",
   "redemption": null,
   "snapshot": "/snapshots/0x11cb2dc9e270fca11a72ec801cd20b34856f7925aa549b98437aad2cd08bc9da.json",
-  "proposal": null
+  "proposal": null,
+  "rpcFallbackUrls": [
+    "https://polygon-bor-rpc.publicnode.com",
+    "https://polygon.drpc.org"
+  ]
 }

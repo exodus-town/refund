@@ -80,3 +80,5 @@ Cloudflare hosts static files only; wallet transactions and RPC reads run in the
 ## Visual design
 
 Uses the dark theme colors and magenta accents from `exodus-town/app`, its Exodus logo, and a parcel-map backdrop following the town’s spiral layout. The borrowed logo is covered by the original license retained in `notices/exodus-town-app-LICENSE`. The map is a visual overview; refund eligibility is determined by the committed snapshot.
+
+Live reads use three public Polygon RPC endpoints with chain verification and automatic failover for HTTP errors, timeouts, rate limits, and historical-state outages. Requests are not batched, and wallet transactions continue to use the connected wallet. NFT inventory is loaded only on the Refund screen. If all endpoints are unavailable, Refresh retries verification and transaction actions remain disabled.

@@ -7,11 +7,12 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "compile": "node scripts/compile.mjs",
-    "test": "npm run compile && hardhat test --no-compile",
+    "test": "npm run test:rpc && npm run compile && hardhat test --no-compile",
     "snapshot": "node scripts/snapshot.mjs",
     "proposal:prepare": "node scripts/prepare.mjs",
     "deploy": "npm run build && wrangler pages deploy dist --project-name exodus-town-refund --branch main",
-    "check": "npm test && npm run build"
+    "check": "npm test && npm run build",
+    "test:rpc": "node --test test/rpc.test.mjs"
   },
   "dependencies": {
     "@openzeppelin/contracts": "4.9.6",
