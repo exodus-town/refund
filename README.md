@@ -82,3 +82,11 @@ Cloudflare hosts static files only; wallet transactions and RPC reads run in the
 Uses the dark theme colors and magenta accents from `exodus-town/app`, its Exodus logo, and a parcel-map backdrop following the town’s spiral layout. The borrowed logo is covered by the original license retained in `notices/exodus-town-app-LICENSE`. The map is a visual overview; refund eligibility is determined by the committed snapshot.
 
 Live reads use three public Polygon RPC endpoints with chain verification and automatic failover for HTTP errors, timeouts, rate limits, and historical-state outages. Requests are not batched, and wallet transactions continue to use the connected wallet. NFT inventory is loaded only on the Refund screen. If all endpoints are unavailable, Refresh retries verification and transaction actions remain disabled.
+
+## Current deployment and proposal
+
+The live Refund contract is `0x4597d46C178C0B11d0F17ACb62bE81555D471524`. Its exact runtime and immutable snapshot parameters were verified. The onchain proposal was posted in [transaction 0xf00204dc…df2fb5](https://polygonscan.com/tx/0xf00204dcf39c04826316b99e6a4d88d812fbdb194a9c22818beb083d23df2fb5). Its targets, calldata, and description match the prepared proposal.
+
+Voting is available from block **96,095,299** through **96,397,698**, inclusive. Delegation must be effective by the proposal snapshot at block **96,095,298**. The Vote screen shows local time estimates based on recent block production; block numbers are authoritative.
+
+The published configuration contains this contract and the exact proposal, so the main URL works without query parameters. New visitors land on Vote after posting (including its pending period), Execute after a successful vote, and Refund after execution. The app checks state every 45 seconds and after wallet actions. Manual navigation remains available to review other steps; a lifecycle transition automatically advances the screen.

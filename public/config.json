@@ -6,9 +6,27 @@
   "mana": "0xA1c57f48F0Deb89f569dFbE6E2B7f46D33606fD4",
   "auction": "0x0Ff58e235b154dd7785C4829D48948CE114248C4",
   "governor": "0x7E96f5242D1256E56E15b46EB2Fa1b1152dF5923",
-  "redemption": null,
+  "redemption": "0x4597d46C178C0B11d0F17ACb62bE81555D471524",
   "snapshot": "/snapshots/0x11cb2dc9e270fca11a72ec801cd20b34856f7925aa549b98437aad2cd08bc9da.json",
-  "proposal": null,
+  "proposal": {
+    "targets": [
+      "0x0Ff58e235b154dd7785C4829D48948CE114248C4",
+      "0xA1c57f48F0Deb89f569dFbE6E2B7f46D33606fD4",
+      "0x4597d46C178C0B11d0F17ACb62bE81555D471524"
+    ],
+    "values": [
+      "0",
+      "0",
+      "0"
+    ],
+    "calldatas": [
+      "0x8456cb59",
+      "0xa9059cbb0000000000000000000000004597d46c178c0b11d0f17acb62be81555d47152400000000000000000000000000000000000000000000056a1ddff9d4a2860000",
+      "0x0f15f4c0"
+    ],
+    "description": "Refund Exodus Town\n\nExchange each eligible TOWN NFT for the MANA paid in its settled auction. Rights follow the current NFT holder. Refunded NFTs are transferred to ExodusDAO. Individual and bulk refunds are supported. No claim deadline.\n\nChain: 137\nSnapshot block: 96050645\nSnapshot block hash: 0x9fdcb590367e89bb6603863a0778feacb03e39f4e73a77c0a944d1d955c674f7\nSnapshot data: https://raw.githubusercontent.com/exodus-town/refund/main/public/snapshots/0x11cb2dc9e270fca11a72ec801cd20b34856f7925aa549b98437aad2cd08bc9da.json\nSnapshot file keccak256: 0x11cb2dc9e270fca11a72ec801cd20b34856f7925aa549b98437aad2cd08bc9da\nMerkle root: 0xb37eb4c5eac13888782e8ad9a820240e4701363e3727b838344516aa35b1b4e6\nEligible NFTs: 229\nTotal MANA (base units): 25569340000000000000000\nRedemption contract: 0x4597d46C178C0B11d0F17ACb62bE81555D471524\n\nOnly settled, positive-price auctions through the snapshot block are eligible. Later auctions and mints are excluded. The active auction is not settled by this proposal. Pause auctions, then Transfer the exact allocation from the DAO treasury and activate redemption atomically. Publish the complete snapshot file with this proposal so anyone can reproduce the root.\n\nThis proposal distributes MANA only; it does not liquidate any other DAO assets.",
+    "descriptionHash": "0x41e7c16b66aa85c7dd59fce7bc7c2ff98dcfbf0ce9783062ca940b4225345c97"
+  },
   "rpcFallbackUrls": [
     "https://polygon-bor-rpc.publicnode.com",
     "https://polygon.drpc.org"
