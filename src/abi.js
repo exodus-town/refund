@@ -1,0 +1,55 @@
+export const townABI = [
+  "function balanceOf(address) view returns(uint256)",
+  "function ownerOf(uint256) view returns(address)",
+  "function tokenOfOwnerByIndex(address,uint256) view returns(uint256)",
+  "function totalSupply() view returns(uint256)",
+  "function getApproved(uint256) view returns(address)",
+  "function isApprovedForAll(address,address) view returns(bool)",
+  "function approve(address,uint256)",
+  "function setApprovalForAll(address,bool)",
+  "function delegate(address)",
+  "function getVotes(address) view returns(uint256)",
+  "function getPastVotes(address,uint256) view returns(uint256)",
+  "function delegates(address) view returns(address)",
+];
+export const manaABI = [
+  "function balanceOf(address) view returns(uint256)",
+  "function decimals() view returns(uint8)",
+];
+export const auctionABI = [
+  "function paused() view returns(bool)",
+  "function owner() view returns(address)",
+  "function town() view returns(address)",
+  "function mana() view returns(address)",
+];
+export const governorABI = [
+  "function propose(address[],uint256[],bytes[],string) returns(uint256)",
+  "function hashProposal(address[],uint256[],bytes[],bytes32) pure returns(uint256)",
+  "function state(uint256) view returns(uint8)",
+  "function proposalSnapshot(uint256) view returns(uint256)",
+  "function proposalDeadline(uint256) view returns(uint256)",
+  "function proposalVotes(uint256) view returns(uint256 againstVotes,uint256 forVotes,uint256 abstainVotes)",
+  "function proposalThreshold() view returns(uint256)",
+  "function votingDelay() view returns(uint256)",
+  "function votingPeriod() view returns(uint256)",
+  "function quorum(uint256) view returns(uint256)",
+  "function hasVoted(uint256,address) view returns(bool)",
+  "function castVote(uint256,uint8) returns(uint256)",
+  "function execute(address[],uint256[],bytes[],bytes32) payable returns(uint256)",
+  "function token() view returns(address)",
+  "event ProposalCreated(uint256 proposalId,address proposer,address[] targets,uint256[] values,string[] signatures,bytes[] calldatas,uint256 voteStart,uint256 voteEnd,string description)",
+];
+export const refundABI = [
+  "function town() view returns(address)",
+  "function mana() view returns(address)",
+  "function governor() view returns(address)",
+  "function merkleRoot() view returns(bytes32)",
+  "function snapshotHash() view returns(bytes32)",
+  "function snapshotBlock() view returns(uint256)",
+  "function totalAllocation() view returns(uint256)",
+  "function remainingAllocation() view returns(uint256)",
+  "function active() view returns(bool)",
+  "function claimed(uint256) view returns(bool)",
+  "function refund(uint256,uint256,bytes32[])",
+  "function refundBatch(uint256[],uint256[],bytes32[][])",
+];

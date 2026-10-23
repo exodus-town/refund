@@ -1,0 +1,6 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "exodus-town-refund",
+  "compatibility_date": "2026-10-23",
+  "assets": { "directory": "./dist" }
+}

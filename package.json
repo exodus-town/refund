@@ -1,0 +1,33 @@
+{
+  "name": "@exodus-town/refund",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "compile": "node scripts/compile.mjs",
+    "test": "npm run compile && hardhat test --no-compile",
+    "snapshot": "node scripts/snapshot.mjs",
+    "proposal:prepare": "node scripts/prepare.mjs",
+    "deploy": "npm run build && wrangler deploy",
+    "check": "npm test && npm run build"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "4.9.6",
+    "@openzeppelin/merkle-tree": "1.0.8",
+    "ethers": "^6.17.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "3.1.0",
+    "hardhat": "2.26.3",
+    "solc": "0.8.24",
+    "vite": "^8.3.5",
+    "wrangler": "^4.152.0"
+  },
+  "overrides": {
+    "@metamask/utils": {
+      "uuid": "^11.1.1"
+    }
+  }
+}
