@@ -10,7 +10,7 @@
     "test": "npm run compile && hardhat test --no-compile",
     "snapshot": "node scripts/snapshot.mjs",
     "proposal:prepare": "node scripts/prepare.mjs",
-    "deploy": "npm run build && wrangler deploy",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name exodus-town-refund --branch main",
     "check": "npm test && npm run build"
   },
   "dependencies": {

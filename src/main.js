@@ -53,10 +53,21 @@ try {
 } catch {}
 const sharedRefund = new URLSearchParams(location.search).get("refund");
 if (sharedRefund) {
-  try { config = {...config, redemption: getAddress(sharedRefund), proposal: null}; }
-  catch { config = {...published}; }
+  try {
+    config = {
+      ...config,
+      redemption: getAddress(sharedRefund),
+      proposal: null,
+    };
+  } catch {
+    config = { ...published };
+  }
 }
-function shareURL() { const url = new URL(location.href); url.searchParams.set("refund", config.redemption); return url.href; }
+function shareURL() {
+  const url = new URL(location.href);
+  url.searchParams.set("refund", config.redemption);
+  return url.href;
+}
 let selected = new Set();
 function provider(url) {
   const request = new FetchRequest(url);
@@ -133,8 +144,11 @@ async function loadSnapshot(text) {
 }
 async function verifyRefund() {
   if (!config.redemption) return;
-  const artifact = await fetch('/refund-artifact.json').then(r => r.json());
-  if (!matchesRuntime(await rpc.getCode(config.redemption), artifact)) throw Error('Refund runtime bytecode does not match the published contract');
+  const artifact = await fetch("/refund-artifact.json").then((r) => r.json());
+  if (!matchesRuntime(await rpc.getCode(config.redemption), artifact))
+    throw Error(
+      "Refund runtime bytecode does not match the published contract",
+    );
   const r = new Contract(config.redemption, refundABI, rpc);
   const values = await Promise.all(
     [
@@ -216,10 +230,27 @@ async function refresh() {
   }
   if (!config.proposal && snapshot && config.redemption) {
     for (const wasPaused of [false, true]) {
-      const p = makeProposal(config, snapshot, snapshotHash, config.redemption, wasPaused);
-      const proposalId = await governor.hashProposal(p.targets, p.values, p.calldatas, p.descriptionHash);
-      try { await governor.state(proposalId); config.proposal = p; persist(); break; }
-      catch (error) { if (error.code !== 'CALL_EXCEPTION') throw error; }
+      const p = makeProposal(
+        config,
+        snapshot,
+        snapshotHash,
+        config.redemption,
+        wasPaused,
+      );
+      const proposalId = await governor.hashProposal(
+        p.targets,
+        p.values,
+        p.calldatas,
+        p.descriptionHash,
+      );
+      try {
+        await governor.state(proposalId);
+        config.proposal = p;
+        persist();
+        break;
+      } catch (error) {
+        if (error.code !== "CALL_EXCEPTION") throw error;
+      }
     }
   }
   if (config.proposal && snapshot && config.redemption) {
@@ -299,6 +330,46 @@ async function refresh() {
 function disabled(condition) {
   return condition || busy ? "disabled" : "";
 }
+function parcelMap() {
+  const count = Math.min(Number(live.supply ?? 230), 900);
+  let x = 0,
+    y = 0,
+    direction = 0,
+    length = 1,
+    step = 0,
+    segment = 0;
+  const directions = [
+    [1, 0],
+    [0, 1],
+    [-1, 0],
+    [0, -1],
+  ];
+  const eligible = new Set(
+    snapshot?.refunds.map((r) => Number(r.tokenId)) ?? [],
+  );
+  const owned = new Set(tokens.map((t) => Number(t.id)));
+  const tiles = [];
+  for (let id = 0; id < count; id++) {
+    const fill = owned.has(id)
+      ? "#fc9dfe"
+      : eligible.has(id)
+        ? "#796a88"
+        : "#a524b3";
+    tiles.push(
+      `<rect x="${x * 18 - 8}" y="${-y * 18 - 8}" width="16" height="16" rx="1" fill="${fill}"/>`,
+    );
+    x += directions[direction][0];
+    y += directions[direction][1];
+    step++;
+    if (step === length) {
+      step = 0;
+      direction = (direction + 1) % 4;
+      segment++;
+      if (segment % 2 === 0) length++;
+    }
+  }
+  return `<svg viewBox="-530 -165 1060 330" preserveAspectRatio="xMidYMid slice" role="presentation"><defs><pattern id="atlas-grid" width="18" height="18" patternUnits="userSpaceOnUse" x="-8" y="-8"><rect width="16" height="16" rx="1" fill="#29242f"/></pattern><radialGradient id="atlas-shade"><stop offset="0" stop-color="#18141a" stop-opacity="0"/><stop offset="1" stop-color="#18141a" stop-opacity=".72"/></radialGradient></defs><rect x="-800" y="-400" width="1600" height="800" fill="url(#atlas-grid)"/><g>${tiles.join("")}</g><rect x="-800" y="-400" width="1600" height="800" fill="url(#atlas-shade)"/></svg>`;
+}
 function render() {
   const stage = live.active
     ? 3
@@ -308,8 +379,8 @@ function render() {
         ? 2
         : 0;
   $("#app").innerHTML =
-    `<header><a class="brand" href="/" aria-label="Exodus Town Refund home"><span class="mark">↶</span> exodus town <span class="slash">/</span> <strong>refund</strong></a><div class="header-right"><span class="network"><i></i> Polygon</span><button id="connect" class="outline" ${disabled(false)}>${account ? esc(short(account)) : "Connect wallet"}</button></div></header>
- <main><section class="hero"><div><p class="eyebrow">A COMMUNITY DECISION · EXODUS DAO</p><h1>Bring your TOWN.<br><em>Take your MANA home.</em></h1><p class="intro">A proposal to return each parcel’s original contribution.<br>Decided by the community. Settled onchain.</p></div><div class="hero-seal"><span>EXODUS TOWN</span><b>↶</b><span>THE RETURN JOURNEY</span></div></section>
+    `<header><a class="brand" href="/" aria-label="Exodus Town Refund home"><img class="brand-logo" src="/exodus-logo.svg" alt=""> <span>Exodus Town</span><span class="slash">/</span><strong>Refund</strong></a><div class="header-right"><a class="town-link" href="https://exodus.town" target="_blank" rel="noreferrer">TOWN ↗</a><span class="network"><i></i> Polygon</span><button id="connect" class="outline" ${disabled(false)}>${account ? esc(short(account)) : "Connect wallet"}</button></div></header>
+ <div class="atlas-banner" aria-hidden="true">${parcelMap()}<div class="atlas-caption">EXODUS TOWN <span>ONE PARCEL AT A TIME</span></div></div><main><section class="hero"><div><p class="eyebrow">A COMMUNITY DECISION · EXODUS DAO</p><h1>Exodus Town Refund<br><em>Return your TOWN. Get your MANA.</em></h1><p class="intro">A proposal to return each parcel’s original contribution.<br>Decided by the community. Settled onchain.</p></div><div class="hero-badge"><img src="/exodus-logo.svg" alt=""><div><span>EXODUS DAO</span><strong>Community refund</strong><small>Built on Polygon</small></div></div></section>
  <section class="stats" aria-label="Refund overview"><div><span>DAO TREASURY</span><strong>${live.treasury !== undefined ? money(live.treasury) : "—"} <small>MANA</small></strong></div><div><span>PROPOSED REFUND</span><strong>${snapshot ? money(snapshot.totalAllocation) : "—"} <small>MANA</small></strong></div><div><span>ELIGIBLE PARCELS</span><strong>${snapshot ? snapshot.refunds.length : "—"} <small>TOWN</small></strong></div><div><span>SNAPSHOT BLOCK</span><strong class="block-number">${snapshot ? snapshot.blockNumber.toLocaleString() : "Not prepared"}</strong></div></section>
  <nav class="steps" aria-label="Refund lifecycle">${["01 · Proposal", "02 · Vote", "03 · Execute", "04 · Refund"].map((s, i) => `<button data-tab="${["proposal", "vote", "execute", "refund"][i]}" class="${tab === ["proposal", "vote", "execute", "refund"][i] ? "selected" : ""}">${s}${i === stage ? "<i></i>" : ""}</button>`).join("")}</nav>
  ${notice ? `<div class="notice" role="status">${esc(notice)}</div>` : ""}
@@ -325,7 +396,7 @@ function proposalView() {
  <div class="actions">${!config.redemption ? `<button id="deploy" ${disabled(!account || !snapshot || !healthy)}>Deploy refund contract ↗</button>` : !config.proposal ? `<button id="prepare-proposal" ${disabled(!snapshot || !healthy)}>Prepare proposal</button>` : `<button id="propose" ${disabled(!account || !healthy || live.state !== null || live.treasury < BigInt(snapshot?.totalAllocation ?? 0) || live.votingPower < live.threshold)}>Post proposal onchain ↗</button>`}<button id="refresh" class="outline" ${disabled(false)}>Refresh</button></div>
  ${account ? `<p class="fine">Your delegated voting power: ${live.votingPower ?? "—"}. Proposal threshold: ${live.threshold ?? "—"}. Governance also requires at least 100 total TOWN.</p>` : '<p class="fine">Connect a wallet on Polygon to deploy or propose.</p>'}
  ${config.proposal ? `<details><summary>Review the complete proposal</summary><pre>${esc(config.proposal.description)}</pre><pre>${esc(JSON.stringify({ targets: config.proposal.targets, values: config.proposal.values, calldatas: config.proposal.calldatas }, null, 2))}</pre></details>` : ""}
- ${config.redemption?`<label>Share this refund<input readonly value="${esc(shareURL())}" aria-label="Share this refund"></label>`:""}<details class="setup"><summary>Setup &amp; shared configuration</summary><p>Import a verified snapshot or a published config. Share the refund link after deployment so other holders can discover this proposal directly onchain. You can also export config.json and commit it to make the proposal the site default.</p><label>Snapshot JSON<input id="snapshot-file" type="file" accept="application/json"></label><label>Shared config JSON<input id="config-file" type="file" accept="application/json"></label><button id="export-config" class="outline">Export config.json ↓</button><label>RPC endpoint<input id="rpc-url" type="url" value="${esc(config.rpcUrl)}"></label><button id="set-rpc" class="outline">Use RPC</button></details>`;
+ ${config.redemption ? `<label>Share this refund<input readonly value="${esc(shareURL())}" aria-label="Share this refund"></label>` : ""}<details class="setup"><summary>Setup &amp; shared configuration</summary><p>Import a verified snapshot or a published config. Share the refund link after deployment so other holders can discover this proposal directly onchain. You can also export config.json and commit it to make the proposal the site default.</p><label>Snapshot JSON<input id="snapshot-file" type="file" accept="application/json"></label><label>Shared config JSON<input id="config-file" type="file" accept="application/json"></label><button id="export-config" class="outline">Export config.json ↓</button><label>RPC endpoint<input id="rpc-url" type="url" value="${esc(config.rpcUrl)}"></label><button id="set-rpc" class="outline">Use RPC</button></details>`;
 }
 function voteView() {
   return `<p class="eyebrow">02 / HAVE YOUR SAY</p><h2>A decision we make together.</h2><p>Delegate your TOWN voting power before the proposal’s voting snapshot. Delegation after that block applies to future proposals.</p>${live.state !== undefined && live.state !== null ? `<div class="status-pill">${states[live.state]}</div><div class="vote-totals"><div><span>FOR</span><strong>${live.votes?.forVotes ?? 0}</strong></div><div><span>AGAINST</span><strong>${live.votes?.againstVotes ?? 0}</strong></div><div><span>ABSTAIN</span><strong>${live.votes?.abstainVotes ?? 0}</strong></div></div><div class="data-line"><span>Voting blocks</span><code>${live.start} → ${live.end}</code></div><div class="data-line"><span>Quorum (for + abstain)</span><b>${live.quorum ?? "Set at voting snapshot"}</b></div><p class="fine">Current block: ${live.block}. ${live.hasVoted ? "Your vote has been recorded." : ""}</p>` : '<div class="empty">Voting will open after the proposal is posted and its voting delay has elapsed.</div>'}<div class="actions"><button data-vote="1" ${disabled(!account || !healthy || live.state !== 1 || live.hasVoted)}>Vote for</button><button data-vote="0" class="outline" ${disabled(!account || !healthy || live.state !== 1 || live.hasVoted)}>Against</button><button data-vote="2" class="outline" ${disabled(!account || !healthy || live.state !== 1 || live.hasVoted)}>Abstain</button></div><hr><div class="data-line"><span>Your delegated power now</span><b>${live.votingPower ?? "Connect wallet"}</b></div><button id="delegate" class="outline" ${disabled(!account || !healthy)}>Delegate to myself</button>`;

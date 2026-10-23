@@ -75,4 +75,8 @@ A paused auction can still be settled after it expires under the original Auctio
 
 The root commits to the list, not its historical truth: voters must review/reproduce the published snapshot. The contract checks available reserves; the published generator and UI check that the declared allocation equals the sum of leaves. There is no administrator function to correct a wrong root after deployment. Contract tests are included; an independent review is still appropriate before the DAO commits its treasury.
 
-Cloudflare hosts static files only; wallet transactions and RPC reads run in the browser. Public configuration contains no credentials. See `wrangler.jsonc` for the static assets deployment. API keys, if used for local verification, must remain outside the repository.
+Cloudflare hosts static files only; wallet transactions and RPC reads run in the browser. Public configuration contains no credentials. See `wrangler.jsonc` for the Cloudflare Pages deployment. API keys, if used for local verification, must remain outside the repository.
+
+## Visual design
+
+Uses the dark theme colors and magenta accents from `exodus-town/app`, its Exodus logo, and a parcel-map backdrop following the town’s spiral layout. The borrowed logo is covered by the original license retained in `notices/exodus-town-app-LICENSE`. The map is a visual overview; refund eligibility is determined by the committed snapshot.
