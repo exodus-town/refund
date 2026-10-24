@@ -45,7 +45,7 @@ npm run dev
 `npm test` uses locally pinned solc, without downloading a compiler. Tests cover exact reserves, activation authority, ownership and approval checks, invalid proofs, post-snapshot token exclusion, double refunds, batch atomicity, and the entire proposal → vote → execute → refund lifecycle using copies of the original TOWN and ExodusDAO sources. The governance integration also verifies that a refunded NFT returned by the DAO cannot claim twice.
 
 ```sh
-# Optional: regenerate only when intentionally choosing a NEW snapshot.
+# Optional: reproduce the existing pinned snapshot at its original block.
 RPC_URL=https://polygon.gateway.tenderly.co SNAPSHOT_BLOCK=96050645 npm run snapshot
 npm run compile
 npm run proposal:prepare
@@ -53,19 +53,18 @@ npm run build
 npm run deploy
 ```
 
-Regenerating with a different block changes the committed terms and requires a new contract and proposal. Keep the original hash-named snapshot available permanently. `RPC_URL` should support historical state reads and historical logs. No explorer API key is needed. The generator binary-searches the auction deployment block and adaptively scans event ranges; it fails on incomplete queries rather than skipping failed ranges.
+Regenerating with a different block changes the committed terms and requires a new contract and proposal. The preparation script rejects any snapshot that differs from the pinned hash and root. Keep the original hash-named snapshot available permanently. `RPC_URL` should support historical state reads and historical logs. No explorer API key is needed. The generator binary-searches the auction deployment block and adaptively scans event ranges; it fails on incomplete queries rather than skipping failed ranges.
 
-## Deploy and post the real proposal
+## Use the posted proposal
 
-1. Open the public dapp and connect the intended Polygon wallet. No private key is stored by the dapp.
-2. On **Proposal**, click **Deploy refund contract**. The wallet deploys `TownRefund` with the immutable root, file hash, snapshot block, and total allocation. This does not move DAO funds.
-3. Click **Prepare proposal** and review all calldata and the complete description. The proposal pauses auctions (unless already paused), transfers the exact MANA allocation to the refund contract, then activates it, all atomically.
-4. Share the generated `?refund=0x…` URL with voters. The UI verifies the exact compiled runtime and immutable snapshot parameters, then reconstructs the proposal and reads its state directly from the DAO. To make it the default for visitors without a link, export **config.json** from **Setup & shared configuration**, replace `public/config.json`, commit, push, and redeploy. The snapshot and proposal must be available publicly before voting. Exported setup is also retained locally for continuity; it is not automatically shared with other visitors.
-5. Delegate your TOWN to yourself before the governance voting snapshot. Wait at least one mined block before proposing if newly delegated. Click **Post proposal onchain**. The proposer needs enough historical delegated votes and governance must be enabled.
-6. Use **Vote** when the proposal is active. After the deadline and successful vote, anyone can use **Execute**.
-7. Use **Refund** to select tokens and **Approve bulk refunds**, then **Refund selected**. Existing single-token approvals also work. Bulk approval is ERC721 `setApprovalForAll` for this refund contract only and can be revoked from the UI. Every refund still requires the current owner to call. Large selections can be split into smaller batches if the chain's gas limit requires it; simulation surfaces the failure before submitting.
+The public app is pinned at build time to the verified contract and exact posted proposal in `src/deployment.js`. The manifest, including nested transaction actions, is frozen. Contract addresses and proposal parameters cannot be supplied through URL parameters, local storage, uploaded files, or runtime configuration. Legacy query strings are removed from the address bar and ignored. Share the plain URL: https://exodus-town-refund.pages.dev/.
 
-Once a proposal has been posted, keep its exact actions and description. They determine its ID and are required for execution. The UI computes the proposal ID from the shared payload, so visitors do not depend on a local transaction receipt or an indexer to find its state.
+1. Connect your Polygon wallet. No private key is stored by the app.
+2. Delegate your TOWN to yourself before the proposal's voting snapshot if you want to vote.
+3. Vote while the proposal is active. After a successful vote, anyone can execute the exact pinned proposal.
+4. After execution, select eligible tokens on Refund, approve the fixed refund contract, and refund the selection. Bulk approval is ERC721 `setApprovalForAll` for that contract only; it can be revoked in the UI. Individual approvals also work. Split large selections if the chain's transaction gas limit requires it.
+
+Deployment, proposal creation, config imports, and snapshot imports have been removed from the live app now that the real contract and proposal exist. A different deployment requires reviewing and rebuilding the source. The existing root, snapshot bytes, and proposal description must remain unchanged.
 
 A paused auction can still be settled after it expires under the original AuctionHouse. This proposal does not settle that auction, refund outstanding bids, sweep later proceeds, sell land, or move other DAO assets. Funds from later settlement remain governed by the DAO. This is a MANA refund mechanism, not a complete liquidation of all DAO holdings.
 
@@ -89,4 +88,4 @@ The live Refund contract is `0x4597d46C178C0B11d0F17ACb62bE81555D471524`. Its ex
 
 Voting is available from block **96,095,299** through **96,397,698**, inclusive. Delegation must be effective by the proposal snapshot at block **96,095,298**. The Vote screen shows local time estimates based on recent block production; block numbers are authoritative.
 
-The published configuration contains this contract and the exact proposal, so the main URL works without query parameters. New visitors land on Vote after posting (including its pending period), Execute after a successful vote, and Refund after execution. The app checks state every 45 seconds and after wallet actions. Manual navigation remains available to review other steps; a lifecycle transition automatically advances the screen.
+The compiled deployment manifest pins this contract, the proposal ID, the exact proposal actions and description, and the snapshot hash. The main URL is the only share link; query strings never select another contract. New visitors land on Vote after posting (including its pending period), Execute after a successful vote, and Refund after execution. The app checks state every 45 seconds and after wallet actions. Manual navigation remains available to review other steps; a lifecycle transition automatically advances the screen.

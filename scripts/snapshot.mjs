@@ -1,7 +1,8 @@
+import { DEPLOYMENT } from "../src/deployment.js";
 import fs from "node:fs";
 import { Contract, JsonRpcProvider, keccak256, toUtf8Bytes } from "ethers";
 import { makeTree } from "./shared.mjs";
-const config = JSON.parse(fs.readFileSync("public/config.json", "utf8"));
+const config = DEPLOYMENT;
 const provider = new JsonRpcProvider(process.env.RPC_URL || config.rpcUrl);
 try {
   const network = await provider.getNetwork();

@@ -1,3 +1,4 @@
+import { DEPLOYMENT } from "../src/deployment.js";
 import fs from "node:fs";
 import { makeTree } from "./shared.mjs";
 import { keccak256, toUtf8Bytes } from "ethers";
@@ -10,15 +11,22 @@ const artifact = JSON.parse(
 );
 fs.writeFileSync(
   "public/refund-artifact.json",
-  JSON.stringify({ abi: artifact.abi, bytecode: artifact.bytecode, deployedBytecode: artifact.deployedBytecode, immutableReferences: artifact.immutableReferences }),
+  JSON.stringify({
+    abi: artifact.abi,
+    bytecode: artifact.bytecode,
+    deployedBytecode: artifact.deployedBytecode,
+    immutableReferences: artifact.immutableReferences,
+  }),
 );
 const hash = keccak256(toUtf8Bytes(text));
+if (
+  hash !== DEPLOYMENT.snapshotHash ||
+  snapshot.merkleRoot !== DEPLOYMENT.merkleRoot
+)
+  throw Error("Snapshot differs from the pinned deployment");
 fs.mkdirSync("public/snapshots", { recursive: true });
 fs.writeFileSync(`public/snapshots/${hash}.json`, text);
-const config = JSON.parse(fs.readFileSync("public/config.json", "utf8"));
-config.snapshot = `/snapshots/${hash}.json`;
-fs.writeFileSync("public/config.json", JSON.stringify(config, null, 2) + "\n");
 console.log(
-  "Prepared wallet deployment UI. Snapshot hash: " +
+  "Prepared pinned snapshot and runtime verification artifact. Snapshot hash: " +
     keccak256(toUtf8Bytes(text)),
 );

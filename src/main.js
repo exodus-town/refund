@@ -1,4 +1,5 @@
 import "./style.css";
+import { DEPLOYMENT as config } from "./deployment.js";
 import {
   relevantStep,
   followLifecycle,
@@ -8,11 +9,9 @@ import { createReadProvider } from "./rpc.js";
 import {
   BrowserProvider,
   Contract,
-  ContractFactory,
   formatUnits,
   keccak256,
   toUtf8Bytes,
-  getAddress,
 } from "ethers";
 import { makeTree, makeProposal, matchesRuntime } from "../scripts/shared.mjs";
 import { townABI, manaABI, governorABI, refundABI, auctionABI } from "./abi";
@@ -37,44 +36,9 @@ const states = [
   "Expired",
   "Executed",
 ];
-let config = await fetch("/config.json").then((r) => r.json());
-const published = { ...config };
-try {
-  const local = JSON.parse(
-    localStorage.getItem("exodus-refund-setup") || "null",
-  );
-  if (
-    local &&
-    local.chainId === config.chainId &&
-    local.governor === config.governor &&
-    !config.redemption
-  )
-    config = {
-      ...config,
-      redemption: local.redemption,
-      proposal: local.proposal,
-    };
-} catch {}
-const sharedRefund = new URLSearchParams(location.search).get("refund");
-if (sharedRefund) {
-  try {
-    config = {
-      ...config,
-      redemption: getAddress(sharedRefund),
-      proposal:
-        config.redemption?.toLowerCase() === sharedRefund.toLowerCase()
-          ? config.proposal
-          : null,
-    };
-  } catch {
-    config = { ...published };
-  }
-}
-function shareURL() {
-  const url = new URL(location.href);
-  url.searchParams.set("refund", config.redemption);
-  return url.href;
-}
+// Old links still work, but no URL input can select contracts or proposals.
+if (location.search)
+  history.replaceState(null, "", location.pathname + location.hash);
 let selected = new Set();
 let previousPhase = null;
 function provider(url) {
@@ -95,7 +59,7 @@ let rpc = provider(config.rpcUrl),
   live = {},
   tokens = [],
   healthy = false;
-let town = new Contract(config.town, townABI, rpc),
+const town = new Contract(config.town, townABI, rpc),
   mana = new Contract(config.mana, manaABI, rpc),
   governor = new Contract(config.governor, governorABI, rpc),
   auction = new Contract(config.auction, auctionABI, rpc);
@@ -103,9 +67,6 @@ const money = (n) =>
   Number(formatUnits(n ?? 0n, live.decimals ?? 18)).toLocaleString("en-US", {
     maximumFractionDigits: 4,
   });
-function persist() {
-  localStorage.setItem("exodus-refund-setup", JSON.stringify(config));
-}
 function download(name, content) {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(
@@ -119,6 +80,8 @@ function link(address) {
   return `<a href="${esc(config.explorer)}/address/${esc(address)}" target="_blank" rel="noreferrer">${esc(short(address))} ↗</a>`;
 }
 async function loadSnapshot(text) {
+  if (keccak256(toUtf8Bytes(text)) !== config.snapshotHash)
+    throw Error("Snapshot differs from the pinned deployment");
   const s = JSON.parse(text);
   for (const key of ["chainId", "town", "mana", "auction", "governor"])
     if (String(s[key]).toLowerCase() !== String(config[key]).toLowerCase())
@@ -146,7 +109,8 @@ async function loadSnapshot(text) {
   }
   if (String(sum) !== s.totalAllocation) throw Error("Snapshot total mismatch");
   const t = makeTree(s);
-  if (t.root !== s.merkleRoot) throw Error("Snapshot Merkle root mismatch");
+  if (t.root !== s.merkleRoot || t.root !== config.merkleRoot)
+    throw Error("Snapshot Merkle root mismatch");
   snapshot = s;
   tree = t;
   snapshotHash = keccak256(toUtf8Bytes(text));
@@ -237,31 +201,6 @@ async function refresh() {
       throw Error("Snapshot block hash differs from chain");
     await verifyRefund();
   }
-  if (!config.proposal && snapshot && config.redemption) {
-    for (const wasPaused of [false, true]) {
-      const p = makeProposal(
-        config,
-        snapshot,
-        snapshotHash,
-        config.redemption,
-        wasPaused,
-      );
-      const proposalId = await governor.hashProposal(
-        p.targets,
-        p.values,
-        p.calldatas,
-        p.descriptionHash,
-      );
-      try {
-        await governor.state(proposalId);
-        config.proposal = p;
-        persist();
-        break;
-      } catch (error) {
-        if (error.code !== "CALL_EXCEPTION") throw error;
-      }
-    }
-  }
   if (config.proposal && snapshot && config.redemption) {
     // Only permit the exact known refund proposal, including whether pause was included.
     const p = config.proposal;
@@ -280,12 +219,9 @@ async function refresh() {
       p.calldatas,
       p.descriptionHash,
     );
-    try {
-      live.state = Number(await governor.state(live.proposalId));
-    } catch (e) {
-      if (e.code !== "CALL_EXCEPTION") throw e;
-      live.state = null;
-    }
+    if (String(live.proposalId) !== config.proposalId)
+      throw Error("Proposal ID differs from the pinned deployment");
+    live.state = Number(await governor.state(BigInt(config.proposalId)));
     if (live.state !== null) {
       [live.start, live.end, live.votes] = await Promise.all([
         governor.proposalSnapshot(live.proposalId),
@@ -418,12 +354,8 @@ function render() {
   bind();
 }
 function proposalView() {
-  return `<p class="eyebrow">01 / SET THE TERMS</p><h2>The refund proposal</h2><p>Publish the snapshot, deploy its refund contract, then ask the DAO to fund and activate it.</p><div class="status-pill">${live.active ? "Refunds are open" : live.state !== undefined && live.state !== null ? states[live.state] : snapshot ? "Snapshot prepared" : "Preparing the snapshot"}</div>${snapshot ? `<div class="data-line"><span>Snapshot root</span><code>${esc(short(snapshot.merkleRoot))}</code></div><div class="data-line"><span>Snapshot file hash</span><code>${esc(short(snapshotHash))}</code></div><div class="data-line"><span>Required reserve</span><b>${money(snapshot.totalAllocation)} MANA</b></div>` : '<div class="empty"><b>The snapshot has not been published yet.</b><p>Historical auction data must be verified before a proposal can be posted.</p></div>'}
- ${snapshot && live.treasury !== undefined && live.treasury < BigInt(snapshot.totalAllocation) ? '<div class="warning">The DAO treasury cannot cover this snapshot. The full contribution refund cannot execute without additional funding.</div>' : ""}
- <div class="actions">${!config.redemption ? `<button id="deploy" ${disabled(!account || !snapshot || !healthy)}>Deploy refund contract ↗</button>` : !config.proposal ? `<button id="prepare-proposal" ${disabled(!snapshot || !healthy)}>Prepare proposal</button>` : `<button id="propose" ${disabled(!account || !healthy || live.state !== null || live.treasury < BigInt(snapshot?.totalAllocation ?? 0) || live.votingPower < live.threshold)}>Post proposal onchain ↗</button>`}<button id="refresh" class="outline" ${disabled(false)}>Refresh</button></div>
- ${account ? `<p class="fine">Your delegated voting power: ${live.votingPower ?? "—"}. Proposal threshold: ${live.threshold ?? "—"}. Governance also requires at least 100 total TOWN.</p>` : '<p class="fine">Connect a wallet on Polygon to deploy or propose.</p>'}
- ${config.proposal ? `<details><summary>Review the complete proposal</summary><pre>${esc(config.proposal.description)}</pre><pre>${esc(JSON.stringify({ targets: config.proposal.targets, values: config.proposal.values, calldatas: config.proposal.calldatas }, null, 2))}</pre></details>` : ""}
- ${config.redemption ? `<label>Share this refund<input readonly value="${esc(shareURL())}" aria-label="Share this refund"></label>` : ""}<details class="setup"><summary>Setup &amp; shared configuration</summary><p>Import a verified snapshot or a published config. Share the refund link after deployment so other holders can discover this proposal directly onchain. You can also export config.json and commit it to make the proposal the site default.</p><label>Snapshot JSON<input id="snapshot-file" type="file" accept="application/json"></label><label>Shared config JSON<input id="config-file" type="file" accept="application/json"></label><button id="export-config" class="outline">Export config.json ↓</button><label>RPC endpoint<input id="rpc-url" type="url" value="${esc(config.rpcUrl)}"></label><button id="set-rpc" class="outline">Use RPC</button></details>`;
+  const p = config.proposal;
+  return `<p class="eyebrow">01 / THE POSTED PROPOSAL</p><h2>The Exodus Town refund proposal</h2><p>This app is pinned to the deployed refund contract and the proposal already posted to ExodusDAO. Its actions pause auctions, fund the exact MANA allocation, and activate refunds atomically.</p><div class="status-pill">${live.active ? "Refunds are open" : live.state !== undefined ? states[live.state] : "Checking proposal"}</div><div class="data-line"><span>Refund contract</span>${link(config.redemption)}</div><div class="data-line"><span>Snapshot root</span><code>${esc(short(config.merkleRoot))}</code></div><div class="data-line"><span>Snapshot file hash</span><code>${esc(short(config.snapshotHash))}</code></div><div class="data-line"><span>Required reserve</span><b>${snapshot ? money(snapshot.totalAllocation) : "—"} MANA</b></div><div class="actions"><button id="refresh" class="outline" ${disabled(false)}>Refresh</button><a href="${config.explorer}/tx/${config.proposalTransaction}" target="_blank" rel="noreferrer">View posted proposal ↗</a></div><details><summary>Review the complete proposal</summary><pre>${esc(p.description)}</pre><pre>${esc(JSON.stringify({ proposalId: config.proposalId, targets: p.targets, values: p.values, calldatas: p.calldatas }, null, 2))}</pre></details><label>Share this proposal<input readonly value="${config.siteUrl}" aria-label="Share this proposal"></label>`;
 }
 function votingEstimate(block) {
   if (!live.secondsPerBlock || !live.timestamp)
@@ -563,114 +495,6 @@ function bind() {
   $("#download-snapshot").onclick = () => {
     if (snapshot) download("snapshot.json", snapshotText);
   };
-  $("#snapshot-file")?.addEventListener("change", (e) =>
-    run(async () => {
-      if (config.redemption)
-        throw Error(
-          "A refund contract is already configured; use its committed snapshot.",
-        );
-      snapshotText = await e.target.files[0].text();
-      await loadSnapshot(snapshotText);
-    }),
-  );
-  $("#config-file")?.addEventListener("change", (e) =>
-    run(async () => {
-      const c = JSON.parse(await e.target.files[0].text());
-      for (const key of ["chainId", "town", "mana", "auction", "governor"])
-        if (
-          String(c[key]).toLowerCase() !== String(published[key]).toLowerCase()
-        )
-          throw Error(`Config ${key} mismatch`);
-      if (c.redemption) getAddress(c.redemption);
-      const previous = config;
-      config = { ...config, redemption: c.redemption, proposal: c.proposal };
-      try {
-        await refresh();
-        persist();
-      } catch (error) {
-        config = previous;
-        throw error;
-      }
-    }),
-  );
-  $("#export-config")?.addEventListener("click", () =>
-    download("config.json", JSON.stringify(config, null, 2) + "\n"),
-  );
-  $("#set-rpc")?.addEventListener("click", () =>
-    run(async () => {
-      const url = new URL($("#rpc-url").value);
-      if (!["https:", "http:"].includes(url.protocol))
-        throw Error("Expected an HTTP RPC");
-      const next = provider(url.href);
-      if (Number((await next.getNetwork()).chainId) !== config.chainId)
-        throw Error("Wrong RPC chain");
-      rpc.destroy();
-      rpc = next;
-      config.rpcUrl = url.href;
-      town = new Contract(config.town, townABI, rpc);
-      mana = new Contract(config.mana, manaABI, rpc);
-      governor = new Contract(config.governor, governorABI, rpc);
-      auction = new Contract(config.auction, auctionABI, rpc);
-    }),
-  );
-  $("#deploy")?.addEventListener("click", () =>
-    run(async () => {
-      await wallet();
-      const a = await fetch("/refund-artifact.json").then((r) => {
-        if (!r.ok)
-          throw Error("Compile and run proposal:prepare before deploying");
-        return r.json();
-      });
-      const deployed = await new ContractFactory(
-        a.abi,
-        a.bytecode,
-        signer,
-      ).deploy(
-        config.town,
-        config.mana,
-        config.governor,
-        snapshot.merkleRoot,
-        snapshotHash,
-        snapshot.blockNumber,
-        snapshot.totalAllocation,
-      );
-      notice = "Deploying refund contract…";
-      render();
-      await deployed.waitForDeployment();
-      config.redemption = await deployed.getAddress();
-      history.replaceState(null, "", shareURL());
-      persist();
-      notice =
-        "Refund contract deployed. Prepare the proposal and export the shared configuration.";
-    }),
-  );
-  $("#prepare-proposal")?.addEventListener("click", () =>
-    run(async () => {
-      await verifyRefund();
-      config.proposal = makeProposal(
-        config,
-        snapshot,
-        snapshotHash,
-        config.redemption,
-        await auction.paused(),
-      );
-      persist();
-      notice =
-        "Proposal prepared. Review the full text and actions below before posting.";
-    }),
-  );
-  $("#propose")?.addEventListener("click", () =>
-    run(async () => {
-      const p = config.proposal;
-      await send(governor, "propose", [
-        p.targets,
-        p.values,
-        p.calldatas,
-        p.description,
-      ]);
-      persist();
-    }),
-  );
   $("#delegate")?.addEventListener("click", () =>
     run(async () => {
       await wallet();
