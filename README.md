@@ -1,6 +1,6 @@
 # Exodus Town Refund
 
-Public dapp: https://exodus-town-refund.pages.dev
+Public dapp: **https://exodus-town-proposal-9.vercel.app** (ExodusDAO proposal #9)
 
 A Polygon dapp and immutable redemption contract for a DAO-approved return of TOWN NFTs in exchange for the MANA originally paid in their settled auctions. NFTs transfer to **ExodusDAO**, and each token can be refunded only once. Both individual and bulk refunds are supported.
 
@@ -50,19 +50,19 @@ RPC_URL=https://polygon.gateway.tenderly.co SNAPSHOT_BLOCK=96050645 npm run snap
 npm run compile
 npm run proposal:prepare
 npm run build
-npm run deploy
+npm run deploy   # Vercel production deploy (project exodus-town-proposal-9)
 ```
 
 Regenerating with a different block changes the committed terms and requires a new contract and proposal. The preparation script rejects any snapshot that differs from the pinned hash and root. Keep the original hash-named snapshot available permanently. `RPC_URL` should support historical state reads and historical logs. No explorer API key is needed. The generator binary-searches the auction deployment block and adaptively scans event ranges; it fails on incomplete queries rather than skipping failed ranges.
 
 ## Use the posted proposal
 
-The public app is pinned at build time to the verified contract and exact posted proposal in `src/deployment.js`. The manifest, including nested transaction actions, is frozen. Contract addresses and proposal parameters cannot be supplied through URL parameters, local storage, uploaded files, or runtime configuration. Legacy query strings are removed from the address bar and ignored. Share the plain URL: https://exodus-town-refund.pages.dev/.
+The public app is pinned at build time to the verified contract and exact posted proposal in `src/deployment.js`. The manifest, including nested transaction actions, is frozen. Contract addresses and proposal parameters cannot be supplied through URL parameters, local storage, uploaded files, or runtime configuration. Legacy query strings are removed from the address bar and ignored. Share the plain URL: https://exodus-town-proposal-9.vercel.app/.
 
 1. Connect your Polygon wallet. No private key is stored by the app.
 2. Delegate your TOWN to yourself before the proposal's voting snapshot if you want to vote.
 3. Vote while the proposal is active. After a successful vote, anyone can execute the exact pinned proposal.
-4. After execution, select eligible tokens on Refund, approve the fixed refund contract, and refund the selection. Bulk approval is ERC721 `setApprovalForAll` for that contract only; it can be revoked in the UI. Individual approvals also work. Split large selections if the chain's transaction gas limit requires it.
+4. After execution, select eligible tokens on **Return plots**, approve the fixed refund contract, and return the selection. Bulk approval is ERC721 `setApprovalForAll` for that contract only; it can be revoked in the UI. Individual approvals also work. Split large selections if the chain's transaction gas limit requires it.
 
 Deployment, proposal creation, config imports, and snapshot imports have been removed from the live app now that the real contract and proposal exist. A different deployment requires reviewing and rebuilding the source. The existing root, snapshot bytes, and proposal description must remain unchanged.
 
@@ -74,18 +74,18 @@ A paused auction can still be settled after it expires under the original Auctio
 
 The root commits to the list, not its historical truth: voters must review/reproduce the published snapshot. The contract checks available reserves; the published generator and UI check that the declared allocation equals the sum of leaves. There is no administrator function to correct a wrong root after deployment. Contract tests are included; an independent review is still appropriate before the DAO commits its treasury.
 
-Cloudflare hosts static files only; wallet transactions and RPC reads run in the browser. Public configuration contains no credentials. See `wrangler.jsonc` for the Cloudflare Pages deployment. API keys, if used for local verification, must remain outside the repository.
+Vercel hosts static files only; wallet transactions and RPC reads run in the browser. Public configuration contains no credentials. See `vercel.json` for the build output and security headers (they mirror `public/_headers`). Production is the Vercel project `exodus-town-proposal-9`, served at https://exodus-town-proposal-9.vercel.app; `npm run deploy` runs `vercel deploy --prod` from a checkout linked with `vercel link --project exodus-town-proposal-9`. Share only the production URL. The earlier Cloudflare Pages and `exodus-town-refund` deployments are retired. API keys, if used for local verification, must remain outside the repository.
 
 ## Visual design
 
 Uses the dark theme colors and magenta accents from `exodus-town/app`, its Exodus logo, and a parcel-map backdrop following the town’s spiral layout. The borrowed logo is covered by the original license retained in `notices/exodus-town-app-LICENSE`. The map is a visual overview; refund eligibility is determined by the committed snapshot.
 
-Live reads use three public Polygon RPC endpoints with chain verification and automatic failover for HTTP errors, timeouts, rate limits, and historical-state outages. Requests are not batched, and wallet transactions continue to use the connected wallet. NFT inventory is loaded only on the Refund screen. If all endpoints are unavailable, Refresh retries verification and transaction actions remain disabled.
+Live reads use three public Polygon RPC endpoints with chain verification and automatic failover for HTTP errors, timeouts, rate limits, and historical-state outages. Requests are not batched, and wallet transactions continue to use the connected wallet. NFT inventory is loaded only on the Return plots screen. If all endpoints are unavailable, Refresh retries verification and transaction actions remain disabled.
 
 ## Current deployment and proposal
 
-The live Refund contract is `0x4597d46C178C0B11d0F17ACb62bE81555D471524`. Its exact runtime and immutable snapshot parameters were verified. The onchain proposal was posted in [transaction 0xf00204dc…df2fb5](https://polygonscan.com/tx/0xf00204dcf39c04826316b99e6a4d88d812fbdb194a9c22818beb083d23df2fb5). Its targets, calldata, and description match the prepared proposal.
+The live refund contract is `0x4597d46C178C0B11d0F17ACb62bE81555D471524`, which ExodusDAO's proposal #9 (the DAO's ninth proposal) funds and activates if it passes. The app is at https://exodus-town-proposal-9.vercel.app. Its exact runtime and immutable snapshot parameters were verified. The onchain proposal was posted in [transaction 0xf00204dc…df2fb5](https://polygonscan.com/tx/0xf00204dcf39c04826316b99e6a4d88d812fbdb194a9c22818beb083d23df2fb5). Its targets, calldata, and description match the prepared proposal.
 
 Voting is available from block **96,095,299** through **96,397,698**, inclusive. Delegation must be effective by the proposal snapshot at block **96,095,298**. The Vote screen shows local time estimates based on recent block production; block numbers are authoritative.
 
-The compiled deployment manifest pins this contract, the proposal ID, the exact proposal actions and description, and the snapshot hash. The main URL is the only share link; query strings never select another contract. New visitors land on Vote after posting (including its pending period), Execute after a successful vote, and Refund after execution. The app checks state every 45 seconds and after wallet actions. Manual navigation remains available to review other steps; a lifecycle transition automatically advances the screen.
+The compiled deployment manifest pins this contract, the proposal ID, the exact proposal actions and description, and the snapshot hash. The main URL is the only share link; query strings never select another contract. New visitors land on Vote after posting (including its pending period), Execute after a successful vote, and Return plots after execution. The app checks state every 45 seconds and after wallet actions. Manual navigation remains available to review other steps; a lifecycle transition automatically advances the screen.

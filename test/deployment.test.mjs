@@ -25,7 +25,7 @@ test("the fixed deployment never reads URL or local-storage overrides", async ()
     );
     assert.equal(loaded.redemption, refund);
     assert.equal(loaded.proposalId, proposalId);
-    assert.equal(loaded.siteUrl, "https://exodus-town-refund.pages.dev/");
+    assert.equal(loaded.siteUrl, "https://exodus-town-proposal-9.vercel.app/");
   } finally {
     for (const [name, descriptor] of saved) {
       if (descriptor) Object.defineProperty(globalThis, name, descriptor);

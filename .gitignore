@@ -7,3 +7,5 @@ cache/
 .env.*
 !.env.example
 coverage/
+.vercel
+.env*

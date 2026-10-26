@@ -38,7 +38,7 @@ export const DEPLOYMENT = deepFreeze({
     "https://polygon-bor-rpc.publicnode.com",
     "https://polygon.drpc.org",
   ],
-  siteUrl: "https://exodus-town-refund.pages.dev/",
+  siteUrl: "https://exodus-town-proposal-9.vercel.app/",
   proposalId:
     "109081609158717326940535053193722669125280727004013537787103873027278016885048",
   proposalTransaction:
